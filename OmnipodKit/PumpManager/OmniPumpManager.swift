@@ -88,6 +88,16 @@ public class OmniPumpManager: RileyLinkPumpManager {
     // This string should match the PumpManagerIdentifier string.
     public static let pluginIdentifier: String = "Omni"
 
+    // Compatibility with older LoopKit DeviceManager protocol (instance-level identifier).
+    public var managerIdentifier: String {
+        return OmniPumpManager.pluginIdentifier
+    }
+
+    // Instance-level forwarder for the static pluginIdentifier (newer LoopKit provides this via protocol extension).
+    public var pluginIdentifier: String {
+        return OmniPumpManager.pluginIdentifier
+    }
+
     // The displayed Insulin Pump name in Loop Settings and in the Pump Settings view
     public var localizedTitle: String
 
@@ -261,8 +271,9 @@ public class OmniPumpManager: RileyLinkPumpManager {
             if oldValue.podState?.setupProgress != newValue.podState?.setupProgress, newValue.podState?.setupProgress == .completed {
                 self.pumpDelegate.notify() { (delegate) in
                     let date = Date()
-                    let event = NewPumpEvent(date: date, dose: nil, raw: "Pod Change \(date)".data(using: .utf8)!, title: "Pod Change", type: .replaceComponent(componentType: .pump))
-                    delegate?.pumpManager(self, hasNewPumpEvents: [event], lastReconciliation: self.lastSync, replacePendingEvents: false) { _ in }
+                    // Older LoopKit has no .replaceComponent event type; .rewind is the legacy pod/reservoir change marker.
+                    let event = NewPumpEvent(date: date, dose: nil, raw: "Pod Change \(date)".data(using: .utf8)!, title: "Pod Change", type: .rewind)
+                    delegate?.pumpManager(self, hasNewPumpEvents: [event], lastReconciliation: self.lastSync) { _ in }
                 }
             }
         }
@@ -3129,7 +3140,7 @@ extension OmniPumpManager: PumpManager {
                 preconditionFailure("pumpManagerDelegate cannot be nil")
             }
 
-            delegate.pumpManager(self, hasNewPumpEvents: doses.map { NewPumpEvent($0) }, lastReconciliation: lastSync, replacePendingEvents: true) { (error) in
+            delegate.pumpManager(self, hasNewPumpEvents: doses.map { NewPumpEvent($0) }, lastReconciliation: lastSync) { (error) in
                 if let error = error {
                     self.log.error("Error storing pod events: %@", String(describing: error))
                 } else {
