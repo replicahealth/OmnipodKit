@@ -21,6 +21,27 @@ import LoopKit
 import LoopKitUI
 
 
+/// Minimal in-memory JSON document used by the certificate exporter (round-trips
+/// through the same o5keypair format the importer reads).
+struct O5KeypairDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.json] }
+
+    var data: Data
+
+    init(data: Data) {
+        self.data = data
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
+}
+
+
 struct Omnipod5SupportView: View {
 
     let podType: PodType
@@ -43,6 +64,9 @@ struct Omnipod5SupportView: View {
     @State private var importError: String?
     @State private var pendingDelete = false
     @State private var pendingDeleteFinalConfirm = false
+    @State private var showingExporter = false
+    @State private var exportDocument: O5KeypairDocument?
+    @State private var exportFilename = "omnipod5.o5keypair"
 
     private var menuHasOptions: Bool {
         if !certLoaded { return true }          // "Load custom certificate"
@@ -84,6 +108,14 @@ struct Omnipod5SupportView: View {
         }
         .fileImporter(isPresented: $showingFileImporter, allowedContentTypes: [.json, .item]) { result in
             handleImport(result)
+        }
+        .fileExporter(
+            isPresented: $showingExporter,
+            document: exportDocument,
+            contentType: .json,
+            defaultFilename: exportFilename
+        ) { _ in
+            exportDocument = nil
         }
         .alert(
             LocalizedString("Import Failed", comment: "Title of o5keypair import-failed alert"),
@@ -160,6 +192,13 @@ struct Omnipod5SupportView: View {
                             showingFileImporter = true
                         } label: {
                             Label(LocalizedString("Load custom certificate", comment: "Menu action to import an o5keypair file"), systemImage: "square.and.arrow.down")
+                        }
+                    }
+                    if let exportableCert = O5RegistrationData.deletableCert {
+                        Button {
+                            beginExport(exportableCert)
+                        } label: {
+                            Label(LocalizedString("Export certificate", comment: "Menu action to export the saved o5keypair to a file"), systemImage: "square.and.arrow.up")
                         }
                     }
                     if O5RegistrationData.deletableCert != nil {
@@ -268,6 +307,21 @@ struct Omnipod5SupportView: View {
     }
 
     // MARK: - Actions
+
+    /// Serialize a saved registration to the o5keypair JSON format and present the
+    /// system file exporter. The exported file contains the controller private key —
+    /// treat it as a secret; anyone with it can pair pods as this controller.
+    private func beginExport(_ cert: O5RegistrationData) {
+        guard let data = try? JSONSerialization.data(
+            withJSONObject: cert.toJSON(),
+            options: [.prettyPrinted, .sortedKeys]
+        ) else {
+            return
+        }
+        exportDocument = O5KeypairDocument(data: data)
+        exportFilename = String(format: "omnipod5-0x%08X.o5keypair", cert.controllerId)
+        showingExporter = true
+    }
 
     private func handleImport(_ result: Result<URL, Error>) {
         switch result {

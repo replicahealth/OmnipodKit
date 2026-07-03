@@ -469,6 +469,9 @@ class O5AppAttestService {
             "app_id": appId,
         ])
 
+        // [O5-DEBUG] Show which identity is being presented to the allowlist. Non-secret. Remove before production.
+        print("[O5-DEBUG] claiming keypair as app_id=\(appId)")
+
         let (data, response) = try await performRequest(request)
 
         guard let json = parseJSON(data),
@@ -496,6 +499,18 @@ class O5AppAttestService {
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw O5AuthError(message: "Invalid response from server.")
+        }
+
+        // [O5-DEBUG] Temporary allowlist-verification logging (replicahealth fork).
+        // Logs endpoint + status only. On success the body is WITHHELD because the
+        // keypair response contains private key material; on error the body is the
+        // server's (non-secret) message. Remove before any production use.
+        let debugPath = request.url?.path ?? "?"
+        if (200...299).contains(httpResponse.statusCode) {
+            print("[O5-DEBUG] POST \(debugPath) -> HTTP \(httpResponse.statusCode) (success; body withheld — contains key material)")
+        } else {
+            let body = String(data: data, encoding: .utf8) ?? "<non-utf8 body>"
+            print("[O5-DEBUG] POST \(debugPath) -> HTTP \(httpResponse.statusCode) — \(body)")
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
