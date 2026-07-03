@@ -48,7 +48,7 @@ struct ManualTempBasalEntryView: View {
     }()
 
     private var rateUnitsLabel: some View {
-        Text(QuantityFormatter(for: .internationalUnitsPerHour).localizedUnitStringWithPlurality())
+        Text(QuantityFormatter(for: .internationalUnitsPerHour).string(from: .internationalUnitsPerHour))
             .foregroundColor(Color(.secondaryLabel))
     }
 
@@ -61,16 +61,16 @@ struct ManualTempBasalEntryView: View {
     }()
 
     private var durationUnitsLabel: some View {
-        Text(QuantityFormatter(for: .hour()).localizedUnitStringWithPlurality())
+        Text(QuantityFormatter(for: .hour()).string(from: .hour()))
             .foregroundColor(Color(.secondaryLabel))
     }
 
     func formatRate(_ rate: Double) -> String {
-        return ManualTempBasalEntryView.rateFormatter.string(from: HKQuantity(unit: .internationalUnitsPerHour, doubleValue: rate)) ?? ""
+        return ManualTempBasalEntryView.rateFormatter.string(from: HKQuantity(unit: .internationalUnitsPerHour, doubleValue: rate), for: .internationalUnitsPerHour) ?? ""
     }
 
     func formatDuration(_ duration: TimeInterval) -> String {
-        return ManualTempBasalEntryView.durationFormatter.string(from: HKQuantity(unit: .hour(), doubleValue: duration.hours)) ?? ""
+        return ManualTempBasalEntryView.durationFormatter.string(from: HKQuantity(unit: .hour(), doubleValue: duration.hours), for: .hour()) ?? ""
     }
 
     var body: some View {

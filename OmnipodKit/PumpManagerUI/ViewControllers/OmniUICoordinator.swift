@@ -382,10 +382,10 @@ class OmniUICoordinator: UINavigationController, PumpManagerOnboarding, Completi
         }
     }
 
-    private func hostingController<Content: View>(rootView: Content, onDisappear: @escaping () -> Void = {}) -> DismissibleHostingController<some View> {
+    private func hostingController<Content: View>(rootView: Content, onDisappear: @escaping () -> Void = {}) -> DismissibleHostingController {
         let rootView = rootView
             .environment(\.appName, Bundle.main.bundleDisplayName)
-        return DismissibleHostingController(content: rootView, onDisappear: onDisappear, colorPalette: colorPalette)
+        return DismissibleHostingController(rootView: rootView, onDisappear: onDisappear, colorPalette: colorPalette)
     }
 
     private func stepFinished() {
