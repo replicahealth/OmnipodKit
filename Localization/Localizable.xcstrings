@@ -21430,6 +21430,9 @@
         }
       }
     },
+    "Export certificate" : {
+      "comment" : "Menu action to export the saved o5keypair to a file"
+    },
     "Extended" : {
       "comment" : "Title string for BeepPreference.extended",
       "extractionState" : "manual",
